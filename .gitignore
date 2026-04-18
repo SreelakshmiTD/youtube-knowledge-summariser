@@ -1,0 +1,24 @@
+# Obsidian vault content — personal notes stay local
+*.md
+!README.md
+!prompt.md
+
+# Obsidian config
+.obsidian/
+
+# yt-dlp output files
+*.vtt
+*.json
+*.jpg
+*.jpeg
+*.webp
+*.png
+*.mp4
+*.m4a
+*.part
+
+# Mac system files
+.DS_Store
+
+# Environment files
+.env
