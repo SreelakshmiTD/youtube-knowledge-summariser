@@ -1,56 +1,96 @@
-# YouTube Knowledge Summariser — Claude Code + Obsidian
+# Claude Brain — YouTube Summariser
 
-A goal-aware knowledge management system that summarises any YouTube video (or article, podcast, book) into structured Obsidian notes — and tells you whether you've already learned what it's teaching.
+YouTube's built-in AI summaries tell you what a video covers. They don't tell you whether *you* already know it.
 
-Inspired by [Reysu's open-source setup](https://github.com/reysu/ai-life-skills). This builds on that foundation with a **goal-aware layer** and a **Verdict system**.
+If you watch a lot of videos across multiple topics, at some point it starts feeling circular — finishing a video and realising you'd already absorbed everything in it, 40 minutes gone.
+
+This catches that before it happens.
 
 ---
 
-## What It Does
+## How it works
 
-Paste a YouTube URL into Claude Code. It:
+Paste a YouTube URL into Claude Code. It pulls the transcript via `yt-dlp`, checks your existing notes for overlaps, and writes a structured Obsidian note.
 
-1. Downloads the transcript via `yt-dlp`
-2. Reads your personal goals file
-3. Checks your existing vault for overlaps
-4. Writes a structured Obsidian note with:
-   - **Verdict** — New / Partially New / Recycled (compared against your existing notes)
-   - **Relevance to your goals** — which goal this serves and what specific gap it fills
-   - **Wikipedia-style Deep Dive** — flowing prose, length proportional to video length
-   - **Best Quotes** — only included when genuinely worth saving
-   - **Skip These** — timestamps to skip, for technical content only
-   - **What To Do Next** — one concrete action this video unlocks
-5. Auto-creates sub-pages for every concept, person, tool, and framework mentioned — building a knowledge graph over time
+Every note starts with a **Verdict**:
+
+```
+## Verdict
+> Partially New
+> Overlaps with: [[Introduction to Transformer Architecture]], [[Attention is All You Need — Summary]]
+```
+
+One line. You know immediately whether to keep reading.
+
+The rest of the note contains:
+
+- **Relevance to your goals** — define your focus areas once in a plain text file. Every summary maps to the closest one and flags the specific gap it fills.
+- **Deep Dive** — flowing prose, proportional to video length. A 3-minute video gets 2 paragraphs. A 2-hour lecture gets something you can read in 15 minutes.
+- **Best Quotes** — only included when there are lines genuinely worth saving. Section is dropped entirely if there aren't.
+- **Skip These** — timestamps to skip based on your background, for technical content only
+- **What To Do Next** — one concrete action, not generic advice
 
 Works for YouTube videos, articles, podcasts, and PDFs.
 
 ---
 
-## Why the Verdict matters
+## The knowledge graph
 
-Most summarisers tell you *what a video said*. This one tells you *whether you already know it*.
+Every concept, person, tool, or book mentioned in a note gets its own page in your `Concepts/` folder — automatically created on first mention, updated on every subsequent one.
 
-After 20–30 notes, the Verdict starts catching recycled content automatically — same ideas, different thumbnails. You'll know in one line whether a 40-minute video is worth your time before you watch it.
+So you're reading a Deep Dive and you see `[[Attention Mechanism]]` inline. You click it:
+
+```
+The attention mechanism is a technique in neural network design that allows
+a model to dynamically focus on different parts of its input when producing
+each part of its output...
+
+## Referenced In
+- [[Illustrated Transformer — Summary]] — introduced as core innovation over RNNs
+- [[20 AI Concepts Explained in 40 Minutes]] — contrasted with convolution-based approaches
+- [[Andrej Karpathy: Let's Build GPT]] — implemented from scratch at 1:12:00
+
+## Related Concepts
+[[Transformer Architecture]] · [[Self-Attention]] · [[Positional Encoding]]
+```
+
+Pages are never overwritten — only the `Referenced In` section grows. After a few weeks of regular use, clicking any concept shows exactly how your understanding of it evolved across everything you've watched. The value compounds.
+
+Sub-pages are organised into `People/`, `Tools/`, `Frameworks/`, `Books/`, and `Ideas/` subfolders so it stays navigable at scale.
 
 ---
 
-## Prerequisites
+## Architecture
 
-- [Claude Code](https://claude.ai/code) installed
-- [Obsidian](https://obsidian.md) installed
-- `yt-dlp` installed (instructions below)
+A prompt-driven agentic workflow running in Claude Code — not a standalone application. Claude Code handles the file system operations, transcript extraction, vault reads for the Verdict comparison, and structured note generation in a single run.
+
+The prompt lives in [`prompt.md`](./prompt.md). That's the only thing you need to customise.
+
+---
+
+## Built on top of Reysu's work
+
+The Wikipedia-style note format, proportional depth ratios, and sub-page architecture come from [Reysu's open-source setup](https://github.com/reysu/ai-life-skills) — worth exploring independently. This repo adds the goal-aware layer, Verdict system, and Concepts subfolder organisation on top.
+
+---
+
+## Requirements
+
+- [Claude Code](https://claude.ai/code)
+- [Obsidian](https://obsidian.md)
+- `yt-dlp`
 
 ---
 
 ## Setup
 
-### 1 — Install yt-dlp
+### 1. Install yt-dlp
 
 ```bash
 brew install yt-dlp
 ```
 
-No Homebrew? Install it first:
+No Homebrew:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -62,29 +102,23 @@ Verify:
 yt-dlp --version
 ```
 
-### 2 — Create your Obsidian vault
+### 2. Create your Obsidian vault
 
-1. Open Obsidian → **Create new vault**
-2. Name it: `Claude Brain`
-3. Save to your `Documents` folder
+Obsidian → Create new vault → name it `Claude Brain` → save to Documents.
 
 Full path: `/Users/YOUR_USERNAME/Documents/Claude Brain`
 
-### 3 — Set up Claude Code
+### 3. Configure Claude Code
 
-1. Open Claude Code
-2. Select `/Users/YOUR_USERNAME/Documents/Claude Brain` as your project folder
-3. Paste the full prompt from [`prompt.md`](./prompt.md) into a new conversation — replacing `YOUR_USERNAME` with your Mac username
+Open Claude Code, select `Claude Brain` as your project folder, paste the contents of [`prompt.md`](./prompt.md) into a new conversation. Replace `YOUR_USERNAME` with your Mac username.
 
-### 4 — First run
-
-Send this to Claude Code:
+### 4. Initialise the vault
 
 ```
 Set up my vault structure and goals file at /Users/YOUR_USERNAME/Documents/Claude Brain
 ```
 
-It will create:
+Creates:
 
 ```
 Claude Brain/
@@ -98,157 +132,50 @@ Claude Brain/
     └── Ideas/
 ```
 
-### 5 — Edit your goals
+### 5. Define your focus areas
 
-Open `goals.md` and replace the defaults with what you actually care about right now. Plain English, no special format:
+Open `goals.md` and replace the defaults with whatever you're currently working on or learning. Plain English, no special syntax:
 
 ```markdown
-# My Goals
+# Goals
 
-- Understanding AI deeply — how models work, research developments, practical applications
-- Improving personal productivity and focus habits
-- Building and maintaining fitness and health
-- Learning guitar
+- Topic or skill you want to go deep on
+- Another area you're actively learning
+- Something you want to stay current with
 ```
 
-Every summary will connect back to whichever goal is most relevant. Add or remove goals anytime — changes apply to all future notes automatically.
+The system maps every summary to the closest goal and flags what was specifically new relative to it. Update this file anytime — changes apply to all future notes immediately.
 
-### 6 — Process your first video
-
-Paste any YouTube URL directly into Claude Code:
+### 6. Process a video
 
 ```
 https://www.youtube.com/watch?v=XXXXX
 ```
 
-That's it. Claude Code handles the rest.
-
----
-
-## What a note looks like
-
-```markdown
-![Thumbnail](thumbnail_url)
-
-# Video Title
-
-**Source:** YouTube  
-**Channel/Author:** Channel Name  
-**Date:** 15 Jan 2025  
-**Length:** 14:32  
-**URL:** https://...
-
----
-
-## Verdict
-> Partially New  
-> Overlaps with: [[Previous Note Title]]
-
----
-
-## Relevance To Your Goals
-Goal: Understanding AI deeply  
-Relevance: High  
-Why: Covers transformer architecture fundamentals relevant to your AI goal  
-Gap Filled: The specific role of positional encoding — not covered in any existing note
-
----
-
-## Overview
-3–5 sentences of Wikipedia-style prose introducing the video and why it matters.
-
----
-
-## Deep Dive
-Full flowing article proportional to video length. Concepts and people 
-[[linked inline]] as they appear naturally. Never bullet points.
-
----
-
-## Best Quotes
-"The most memorable line from the video."
-
----
-
-## What To Do Next
-One specific action this video unlocks.
-
----
-
-## Skip These
-| Timestamp | Reason to skip |
-|-----------|----------------|
-| 0:00–1:30 | Intro and sponsor — skip entirely |
-```
-
----
-
-## How sub-pages work
-
-Every `[[linked concept]]` in a note auto-creates a sub-page in the `Concepts/` folder (organised by People / Tools / Frameworks / Books / Ideas).
-
-Sub-pages are never recreated — only updated. When a concept appears in multiple videos, its page grows a `Referenced In` section connecting every note that mentions it. After a few weeks, clicking `[[Attention Mechanism]]` shows you every video you've ever watched that touched on it. That's the knowledge graph building.
-
----
-
-## Content length ratios
-
-| Video length | Deep Dive length |
-|---|---|
-| Under 10 min | 1–2 paragraphs |
-| 10–20 min | 2–3 paragraphs |
-| 20–60 min | 4–6 paragraphs |
-| 1–2 hours | 7–10 paragraphs |
-| 2–3 hours | 11–15 paragraphs |
-| 3+ hours / books | 15–20 min read |
-
----
-
-## Supported content types
-
-| Input | How to use |
-|---|---|
-| YouTube video | Paste URL directly |
-| Article / blog post | Paste URL directly |
-| Podcast (on YouTube) | Paste URL directly |
-| PDF (book or paper) | Tell Claude Code to read the PDF |
-
-> **Note:** Videos with no transcript will fail — Whisper support for auto-transcription is a planned extension.
+Paste the URL. Claude Code handles the rest.
 
 ---
 
 ## Known limitations
 
-- `yt-dlp` occasionally breaks when YouTube updates its internals — usually fixed within a day or two by the community
-- Auto-generated captions on some videos are low quality — summary quality drops slightly for these
-- The Verdict logic is prompt-based, not vector-based — accuracy improves as your vault grows but may slow down with 200+ notes
+- The Verdict comparison is prompt-based, not vector-based — works well up to ~100 notes, may slow down beyond that. A vector-based implementation using ChromaDB is a logical next step.
+- Videos without transcripts will fail — `yt-dlp` requires captions to be available. Whisper integration for audio transcription is a planned addition.
+- `yt-dlp` occasionally breaks when YouTube updates its internals. Community patches are typically fast.
 
 ---
 
 ## Possible extensions
 
-These are ideas worth building — contributions welcome:
+**Tutorial comparison** — evaluate multiple videos against each other rather than against your vault. Useful for deciding which tutorial to invest time in before watching any of them. Feed Claude Code multiple transcripts and have it rank by depth, originality, and relevance to your goals.
 
-**Tutorial comparison layer**  
-Instead of evaluating one video against your vault, evaluate multiple videos *against each other*. "Which of these three Spark tutorials is actually worth my time?" This is a natural next step once the single-video system is working — feed Claude Code multiple transcripts and ask it to rank them by depth, originality, and relevance to your goals.
+**Whisper fallback** — integrate [OpenAI Whisper](https://github.com/openai/whisper) for videos with no available transcript.
 
-**Whisper fallback**  
-For videos with no transcript, use [OpenAI Whisper](https://github.com/openai/whisper) to auto-transcribe locally before summarising. Adds setup complexity but makes the system work on any video.
+**Vector-based Verdict** — replace prompt-based overlap detection with embeddings (ChromaDB or similar) for more accurate comparisons at scale.
 
-**Vector-based Verdict**  
-Replace the current prompt-based overlap detection with proper embeddings (ChromaDB or similar) for faster, more accurate comparisons at scale. Particularly useful once your vault exceeds 100+ notes.
-
-**Batch processing**  
-Process a playlist or a list of URLs in one run. Useful for catching up on a backlog or evaluating an entire course before committing to it.
+**Batch processing** — process a full playlist in a single run.
 
 ---
 
-## The prompt
+## License
 
-The full Claude Code instruction set is in [`prompt.md`](./prompt.md).
-
----
-
-## Credits
-
-Built on top of [Reysu's ai-life-skills](https://github.com/reysu/ai-life-skills). The Wikipedia-style note format, proportional depth approach, and sub-page architecture are his. The goal-aware layer, Verdict system, and knowledge graph organisation are additions built on top.
+MIT
